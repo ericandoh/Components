@@ -136,6 +136,7 @@ public class World {
 			}
 		}
 		if (minDst < 0) {
+			System.out.println("No piece selected");
 			if (Intersector.intersectRayPlane(cameraRay, FLAT, place)) {
 				float dist = place.dst(cameraRay.origin);
 				if (dist >= Position.getWidth(sideSize) * Constants.MAX_PLACE_REACH) {

@@ -49,8 +49,9 @@ public class Piece implements Placeable {
 		this.detailSize = size;
 		this.name = name;
 	}
+	@SuppressWarnings("unchecked")
 	public Piece(ArrayList<BasicBox> boxes, PieceAndMaterialRepo repo) {
-		this.boxes = boxes;
+		this.boxes = (ArrayList<BasicBox>) boxes.clone();
 		this.dimensions = new Vector3();
 		updateWidths(true);
 		generateModel();
@@ -237,7 +238,7 @@ public class Piece implements Placeable {
 				}
 			}
 			else {
-				dst = ((Piece)(boxes.get(c).getMat())).hits(sqPos1, cameraRay, sideSize);
+				dst = ((Piece)(boxes.get(c).getMat())).hits(sqPos0, cameraRay, sideSize);
 				if (dst > 0)
 					minDst = Math.min(minDst, dst);
 			}
@@ -245,45 +246,55 @@ public class Piece implements Placeable {
 		if (minDst == maxDst) {
 			return -1.0f;
 		}
+		System.out.println("Hit "+this.name + " with dist " + Float.toString(minDst));
 		return minDst;
 	}
 	
 	
-	public float findCollision(Vector3 p, Ray cameraRay, Vector3 place, Vector3 dim, int sideSize) {
+	public float findCollision(Vector3 pos, Ray cameraRay, Vector3 place, Vector3 dim, int sideSize) {
 		if (id == GROUND_ID) {
 			return -1.0f;
 		}		
 		Vector3 intersection = new Vector3();
-		Vector3 sqPos = new Vector3();
+		Vector3 sqPos0 = new Vector3();
+		
+		Vector3 sqPos1 = new Vector3();
+		sqPos0.set(pos);
+		sqPos1.set(sqPos0).add(dimensions);
+		if (!Intersector.intersectRayBounds(cameraRay, new BoundingBox(sqPos0, sqPos1), intersection)) {
+			return -1.0f;
+		}
+		
 		Vector3 savedInter, savedPos1, savedPos2;
 		boolean alreadySet = false;
 		savedInter = new Vector3();
 		savedPos1 = new Vector3();
 		savedPos2 = new Vector3();
 		float width;
-		Vector3 oppositeCorner = new Vector3();
 		float minDist = Float.MAX_VALUE;
 		float dist;
 		//int useSize = sideSize;
 		for (int c = 0; c < boxes.size(); c++) {
-			sqPos.set(boxes.get(c).getPos()).add(p);
+			sqPos0.set(boxes.get(c).getPos()).add(pos);
 			if (boxes.get(c).isBox()) {
 				width = Position.getWidth(boxes.get(c).getSize());
-				oppositeCorner.set(sqPos).add(width, width, width);
-				if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(sqPos, oppositeCorner), intersection)) {
+				sqPos1.set(sqPos0).add(width, width, width);
+				if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(sqPos0, sqPos1), intersection)) {
 					dist = intersection.dst(cameraRay.origin);
 					if (dist < minDist) {
 						minDist = dist;
 						savedInter.set(intersection);
-						savedPos1.set(sqPos);
-						savedPos2.set(oppositeCorner);
+						savedPos1.set(sqPos0);
+						savedPos2.set(sqPos1);
 						alreadySet = false;
 					}
 				}
 			}
 			else {
-				dist = ((Piece)(boxes.get(c).getMat())).findCollision(sqPos, cameraRay, intersection, dim, sideSize);
+				System.out.println("Checking against subpiece");
+				dist = ((Piece)(boxes.get(c).getMat())).findCollision(sqPos0, cameraRay, intersection, dim, sideSize);
 				if (dist >= 0 && dist < minDist) {
+					System.out.println("Subpiece valid");
 					minDist = dist;
 					savedInter.set(intersection);
 					alreadySet = true;

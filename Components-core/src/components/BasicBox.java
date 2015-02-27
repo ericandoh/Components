@@ -37,6 +37,9 @@ public class BasicBox {
 		pos.add(offset);
 		return pos;
 	}
+	public boolean isPiece() {
+		return !this.isBox();
+	}
 	public boolean isBox() {
 		return mat.isBox();
 	}

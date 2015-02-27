@@ -269,6 +269,7 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 				//what do - right clicked when not editting???
 				if (bottomBar.isBoxAtSelected()) {
 					editting = true;
+					System.out.println("Turned on");
 					//bottomBar.setVisible(true);
 				}
 				else {
