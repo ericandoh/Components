@@ -280,8 +280,11 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 					Vector3 addAt = world.findCollision(cameraRay, place, boxDimensions, edittingSize);
 					if (addAt != null) {
 						System.out.println("Adding a piece?");
-						if (bottomBar.getAtSelected() instanceof Piece) {
+						if (!bottomBar.getAtSelected().isBox()) {
 							world.addPiece((Piece)bottomBar.getAtSelected(), addAt);
+						}
+						else {
+							System.out.println("Can't add blocks directly to the world! (for now?)");
 						}
 					}
 				}

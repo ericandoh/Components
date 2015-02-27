@@ -27,7 +27,6 @@ public class World {
 	private MockWorld source;
 	
 	private Player me;
-	private PieceInstance buildMeInstance;
 	private PieceUnderConstruction buildMe;
 	private Vector3 lastFetch;
 	//makes a new world centered at 0,0
@@ -52,7 +51,7 @@ public class World {
 			}
 		}
 		if (buildMe != null) {
-			count = buildMe.render(me.getPos(), renderables, count);
+			count = buildMe.render(me.getPos(), renderables, count, renderLength, renderSize);
 		}
 		return count;
 	}
@@ -84,6 +83,12 @@ public class World {
 	}
 	public void addBlockToBuild(Vector3 p, int size, Placeable material) {
 		BasicBox box = new BasicBox(material, size, p);
+		if (buildMe != null) {
+			if (buildMe.conflicts(box)) {
+				System.out.println("Conflicts with another block in build");
+				return;
+			}
+		}
 		for (int x = 0; x < CHUNK_RENDER_SIZE; x++) {
 			for (int z = 0; z < CHUNK_RENDER_SIZE; z++) {
 				if (centeredChunk[x][z].conflicts(box)) {
@@ -94,7 +99,6 @@ public class World {
 		}
 		if (buildMe == null) {
 			buildMe = new PieceUnderConstruction();
-			buildMeInstance = new PieceInstance(buildMe, buildMe.ORIGIN);
 		}
 		buildMe.addBlock(box);
 	}
@@ -102,12 +106,13 @@ public class World {
 		if (buildMe == null) {
 			return null;
 		}
+		Vector3 replace = new Vector3();
+		replace.set(buildMe.getPos());
 		Piece build = buildMe.exportToPiece(repo);
 		if (build == null) {
 			buildMe = null;
 			return null;
 		}
-		Vector3 replace = buildMe.getPos();
 		buildMe = null;
 		addPiece(build, replace);
 		return build;
@@ -122,12 +127,17 @@ public class World {
 		Vector3 temp = new Vector3();
 		
 		if (buildMe != null) {
-			minDst = buildMeInstance.findCollision(cameraRay, place, boxDimensions, sideSize);
+			dst = buildMe.findCollision(cameraRay, temp, boxDimensions, sideSize);
+			if (dst >= 0) {
+				minDst = dst;
+				place.set(temp);
+			}
 		}
 		for (int x = 0; x < CHUNK_RENDER_SIZE; x++) {
 			for (int z = 0; z < CHUNK_RENDER_SIZE; z++) {
 				dst = centeredChunk[x][z].findCollision(cameraRay, temp, boxDimensions, sideSize);
 				if (dst >= 0) {
+					System.out.println("Found one!");
 					if (minDst < 0 || dst < minDst) {
 						minDst = dst;
 						place.set(temp);
@@ -140,11 +150,13 @@ public class World {
 			if (Intersector.intersectRayPlane(cameraRay, FLAT, place)) {
 				float dist = place.dst(cameraRay.origin);
 				if (dist >= Position.getWidth(sideSize) * Constants.MAX_PLACE_REACH) {
+					System.out.println("out of reach");
 					return null;
 				}
 				place.y = Math.max(0.0f, place.y);
 			}
 			else {
+				System.out.println("out of plane");
 				return null;
 			}
 		}
@@ -152,6 +164,10 @@ public class World {
 		place.x = Position.quantizeValue(place.x, sideSize);
 		place.y = Position.quantizeValue(place.y, sideSize);
 		place.z = Position.quantizeValue(place.z, sideSize);
+		
+		if (place.y < 0)
+			place.y = 0;
+		
 		System.out.println("Collision at ");
 		System.out.println(place);
 		return place;
@@ -169,10 +185,11 @@ public class World {
 		minP = null;
 		
 		if (buildMe != null) {
-			dst.x = buildMeInstance.hits(cameraRay, sideSize);
+			dst.x = buildMe.hits(cameraRay, sideSize);
 			if (dst.x >= 0) {
 				minDst = dst.x;
-				minP = buildMeInstance;
+				minP = null;
+				System.out.println("Hit the editting piece somehow LOL");
 			}
 		}
 		

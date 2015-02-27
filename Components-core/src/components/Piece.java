@@ -40,8 +40,11 @@ public class Piece implements Placeable {
 	protected Vector3 dimensions;
 	protected int detailSize;
 	
+	protected Vector3 temp0, temp1, temp2, temp3;
+	
 	public Piece(Model p, String name, int size, int xwidth, int ywidth, int zwidth, PieceAndMaterialRepo repo) {
 		//your basic piece
+		makeTemporary();
 		this.model = p;
 		this.boxes = new ArrayList<BasicBox>();
 		this.boxes.add(new BasicBox(repo.getNamedMaterial(1), size, new Vector3(0, 0, 0)));
@@ -51,6 +54,7 @@ public class Piece implements Placeable {
 	}
 	@SuppressWarnings("unchecked")
 	public Piece(ArrayList<BasicBox> boxes, PieceAndMaterialRepo repo) {
+		makeTemporary();
 		this.boxes = (ArrayList<BasicBox>) boxes.clone();
 		this.dimensions = new Vector3();
 		updateWidths(true);
@@ -60,10 +64,17 @@ public class Piece implements Placeable {
 	}
 	//use this constructor only for PieceUnderConstruction
 	public Piece() {
+		makeTemporary();
 		this.name = "under construction";
 		id = -1;
 		boxes = new ArrayList<BasicBox>();
 		this.dimensions = new Vector3();
+	}
+	public void makeTemporary() {
+		temp0 = new Vector3();
+		temp1 = new Vector3();
+		temp2 = new Vector3();
+		temp3 = new Vector3();
 	}
 	public void setID(int id) {
 		this.id = id;
@@ -118,12 +129,11 @@ public class Piece implements Placeable {
 		maxX = maxY = maxZ = -Integer.MAX_VALUE;
 		Vector3 sqPos = new Vector3();
 		int scaledSize;
-		Vector3 scaledWidth = new Vector3();
+		Vector3 scaledWidth;
 		detailSize = Constants.CHUNK_MAX_SIZE;
 		for (int c = 0; c < boxes.size(); c++) {
 			sqPos.set(boxes.get(c).getPos());
-			scaledSize = boxes.get(c).getSize();
-			boxes.get(c).getDimension(scaledWidth);
+			scaledWidth = boxes.get(c).getDimension();
 			minX = Math.min((int)sqPos.x, minX);
 			minY = Math.min((int)sqPos.y, minY);
 			minZ = Math.min((int)sqPos.z, minZ);
@@ -131,6 +141,7 @@ public class Piece implements Placeable {
 			maxY = Math.max((int)(sqPos.y + scaledWidth.y), maxY);
 			maxZ = Math.max((int)(sqPos.z + scaledWidth.z), maxZ);
 			if (boxes.get(c).isBox()) {
+				scaledSize = boxes.get(c).getSize();
 				detailSize = Math.min(detailSize, scaledSize);
 				detailSize = Math.min(detailSize, scaledSize);
 				detailSize = Math.min(detailSize, scaledSize);
@@ -147,106 +158,59 @@ public class Piece implements Placeable {
 		}
 	}
 	
-	public boolean conflicts(Vector3 pos, BasicBox box) {
-		if (box.isBox()) {
-			Vector3 boxDim = new Vector3();
-			box.getDimension(boxDim);
-			return conflicts(pos, box.getPos(), boxDim);
+	public boolean conflicts(Vector3 pos, BasicBox target) {
+		//see if it hits my overall bounding box
+		//set my bounding box
+		temp0.set(pos);
+		temp1.set(pos).add(dimensions);
+		//set their bounding box
+		temp2.set(target.getPos());
+		temp3.set(target.getPos()).add(target.getDimension());
+		//check if it hits bounding box
+		if (	   temp0.x < temp3.x && temp1.x > temp2.x 
+				&& temp0.y < temp3.y && temp1.y > temp2.y 
+				&& temp0.z < temp3.z && temp1.z > temp2.z  ) {
+			//do nothing - we have a good chance of conflicting! (but not yet!)
 		}
 		else {
-			Piece them = (Piece)box.getMat();
-			BasicBox movedCopy;
-			//iterate through my own boxes
-			for (int i = 0; i < boxes.size(); i++) {
-				movedCopy = new BasicBox(boxes.get(i));
-				movedCopy.offset(pos);
-				if (them.conflicts(box.getPos(), movedCopy)) {
-					return true;
-				}
+			return false;
+		}
+		
+		//iterate through my own boxes
+		for (int i = 0; i < boxes.size(); i++) {
+			temp0.set(boxes.get(i).getPos()).add(pos);
+			if (boxes.get(i).conflicts(temp0, target)) {
+				return true;
 			}
 		}
 		return false;
 	}
 	
-	//pos of this pieceinstance, test vector to test against, size of box of test
-	public boolean conflicts(Vector3 pos, Vector3 test0, Vector3 mWidth) {
-		Vector3 sqPos0 = new Vector3();
-		Vector3 sqPos1 = new Vector3();
-		Vector3 test1 = new Vector3();
-		Vector3 sqWidth = new Vector3();
-		test1.set(test0).add(mWidth);
-		
-		//check if it hits bounding box
-		sqPos0.set(pos);
-		sqPos1.set(sqPos0).add(dimensions);
-		if (	   test0.x < sqPos1.x && test1.x > sqPos0.x 
-				&& test0.y < sqPos1.y && test1.y > sqPos0.y 
-				&& test0.z < sqPos1.z && test1.z > sqPos0.z  ) {
-		}
-		else {
-			return false;
-		}
-		BasicBox box;
-		Piece them;
-		for (int i = boxes.size() - 1; i >= 0; i--) {
-			box = boxes.get(i);
-			sqPos0.set(box.getPos()).add(pos);
-			if (box.isBox()) {
-				boxes.get(i).getDimension(sqWidth);
-				sqPos1.set(sqPos0).add(sqWidth);
-				if (	   test0.x < sqPos1.x && test1.x > sqPos0.x 
-						&& test0.y < sqPos1.y && test1.y > sqPos0.y 
-						&& test0.z < sqPos1.z && test1.z > sqPos0.z  ) {
-					return true;
-				}
-			}
-			else {
-				them = (Piece)box.getMat();
-				if (them.conflicts(sqPos0, test0, mWidth)) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
 	public float hits(Vector3 pos, Ray cameraRay, int sideSize) {
 		if (id == GROUND_ID) {
 			return -1.0f;
 		}
-		Vector3 sqPos0 = new Vector3();
-		Vector3 sqPos1 = new Vector3();
-		Vector3 intersection = new Vector3();
-		float maxDst = Position.getWidth(sideSize) * Constants.MAX_PLACE_REACH;
-		float minDst = maxDst;
-		//check if it hits bounding box
-		sqPos0.set(pos);
-		sqPos1.set(sqPos0).add(dimensions);
-		if (!Intersector.intersectRayBounds(cameraRay, new BoundingBox(sqPos0, sqPos1), intersection)) {
-			//doesn't even hit the bounds LOL
+		temp0.set(pos);
+		temp1.set(pos).add(dimensions);
+		
+		if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(temp0, temp1), temp2)) {
+			//do nothing - we have a good chance it might hit us!
+		}
+		else {
+			//doesn't hit our outside box - fail!
 			return -1.0f;
 		}
-		//check each box we have here
-		Vector3 temp = new Vector3();
 		float dst;
-		for (int c = 0; c < boxes.size(); c++) {
-			sqPos0.set(boxes.get(c).getPos()).add(pos);
-			if (boxes.get(c).isBox()) {
-				boxes.get(c).getDimension(temp);
-				sqPos1.set(sqPos0).add(temp);
-				if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(sqPos0, sqPos1), intersection)) {
-					minDst = Math.min(minDst, intersection.dst(cameraRay.origin));
+		float minDst = -1.0f;
+		for (int i = 0; i < boxes.size(); i++) {
+			temp0.set(boxes.get(i).getPos()).add(pos);
+			dst = boxes.get(i).hits(temp0, cameraRay, sideSize);
+			if (dst >= 0) {
+				if (minDst < 0 || dst < minDst) {
+					minDst = dst;
 				}
 			}
-			else {
-				dst = ((Piece)(boxes.get(c).getMat())).hits(sqPos0, cameraRay, sideSize);
-				if (dst > 0)
-					minDst = Math.min(minDst, dst);
-			}
 		}
-		if (minDst == maxDst) {
-			return -1.0f;
-		}
-		System.out.println("Hit "+this.name + " with dist " + Float.toString(minDst));
 		return minDst;
 	}
 	
@@ -254,96 +218,37 @@ public class Piece implements Placeable {
 	public float findCollision(Vector3 pos, Ray cameraRay, Vector3 place, Vector3 dim, int sideSize) {
 		if (id == GROUND_ID) {
 			return -1.0f;
-		}		
-		Vector3 intersection = new Vector3();
-		Vector3 sqPos0 = new Vector3();
-		
-		Vector3 sqPos1 = new Vector3();
-		sqPos0.set(pos);
-		sqPos1.set(sqPos0).add(dimensions);
-		if (!Intersector.intersectRayBounds(cameraRay, new BoundingBox(sqPos0, sqPos1), intersection)) {
-			return -1.0f;
 		}
-		
-		Vector3 savedInter, savedPos1, savedPos2;
-		boolean alreadySet = false;
-		savedInter = new Vector3();
-		savedPos1 = new Vector3();
-		savedPos2 = new Vector3();
-		float width;
-		float minDist = Float.MAX_VALUE;
-		float dist;
-		//int useSize = sideSize;
-		for (int c = 0; c < boxes.size(); c++) {
-			sqPos0.set(boxes.get(c).getPos()).add(pos);
-			if (boxes.get(c).isBox()) {
-				width = Position.getWidth(boxes.get(c).getSize());
-				sqPos1.set(sqPos0).add(width, width, width);
-				if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(sqPos0, sqPos1), intersection)) {
-					dist = intersection.dst(cameraRay.origin);
-					if (dist < minDist) {
-						minDist = dist;
-						savedInter.set(intersection);
-						savedPos1.set(sqPos0);
-						savedPos2.set(sqPos1);
-						alreadySet = false;
-					}
-				}
-			}
-			else {
-				System.out.println("Checking against subpiece");
-				dist = ((Piece)(boxes.get(c).getMat())).findCollision(sqPos0, cameraRay, intersection, dim, sideSize);
-				if (dist >= 0 && dist < minDist) {
-					System.out.println("Subpiece valid");
-					minDist = dist;
-					savedInter.set(intersection);
-					alreadySet = true;
-				}
-			}
-			
-			
-		}
-		if (minDist == Float.MAX_VALUE) {
-			//return intersection with flat plane
-			return -1.0f;
-		}
-		else if (minDist >= Position.getWidth(sideSize) * Constants.MAX_PLACE_REACH) {
-			return -1.0f;
-		}
-		else if (alreadySet) {
-			//already calculated position to the side of in a subpiece
-			System.out.println("Hit a subpiece LOL");
-			place.set(savedInter);
+		temp0.set(pos);
+		temp1.set(pos).add(dimensions);
+		if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(temp0, temp1), temp2)) {
+			//do nothing - we have a good chance it might hit us!
 		}
 		else {
-			System.out.println("Hit a side block");
-			if (Math.abs(savedInter.x - savedPos1.x) < 0.01) {
-				//place.set(savedPos1.x - sideWidth, savedPos1.y, savedPos1.z);
-				place.set(savedPos1.x - dim.x, savedInter.y, savedInter.z);
-			}
-			else if (Math.abs(savedInter.x - savedPos2.x) < 0.01) {
-				place.set(savedPos2.x, savedInter.y, savedInter.z);
-			}
-			else if (Math.abs(savedInter.y - savedPos1.y) < 0.01) {
-				place.set(savedInter.x, savedPos1.y - dim.y, savedInter.z);
-			}
-			else if (Math.abs(savedInter.y - savedPos2.y) < 0.01) {
-				place.set(savedInter.x, savedPos2.y, savedInter.z);
-			}
-			else if (Math.abs(savedInter.z - savedPos1.z) < 0.01) {
-				place.set(savedInter.x, savedInter.y, savedPos1.z - dim.z);
-			}
-			else if (Math.abs(savedInter.z - savedPos2.z) < 0.01) {
-				place.set(savedInter.x, savedInter.y, savedPos2.z);
-			}
-			else {
-				System.out.println("Shit went wrong");
+			//doesn't hit our outside box - fail!
+			System.out.println("out of bounds");
+			return -1.0f;
+		}
+		
+		temp2.scl(0.0f);
+		
+		float dst;
+		float minDst = -1.0f;
+		for (int i = 0; i < boxes.size(); i++) {
+			temp0.set(boxes.get(i).getPos()).add(pos);
+			dst = boxes.get(i).findCollision(temp0, cameraRay, temp1, dim, sideSize);
+			if (dst >= 0) {
+				System.out.println("Found onet");
+				if (minDst < 0 || dst < minDst) {
+					minDst = dst;
+					temp2.set(temp1);
+				}
 			}
 		}
-		//place.x = Position.quantizeValue(place.x, sideSize);
-		//place.y = Position.quantizeValue(place.y, sideSize);
-		//place.z = Position.quantizeValue(place.z, sideSize);
-		return minDist;
+		if (minDst >= 0) {
+			place.set(temp2);
+		}
+		return minDst;
 	}
 	
 	public void setModel(Model p) {

@@ -1,6 +1,7 @@
 package components;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.Intersector;
@@ -12,14 +13,18 @@ public class PieceUnderConstruction extends Piece {
 	
 	public static final Vector3 ORIGIN = new Vector3(0, 0, 0);
 	
-	private ArrayList<BasicRenderable> squareModels;
+	
 	private Vector3 corner0;
+	
+	private HashMap<BasicBox, BasicRenderable> boxRenderables;
+	protected HashMap<BasicBox, PieceInstance> subInstances;
 	
 	public PieceUnderConstruction() {
 		super();
 		this.detailSize = Integer.MAX_VALUE;
-		this.squareModels = new ArrayList<BasicRenderable>();
 		this.corner0 = new Vector3();
+		this.boxRenderables = new HashMap<BasicBox, BasicRenderable>();
+		this.subInstances = new HashMap<BasicBox, PieceInstance>();
 	}
 	
 	
@@ -32,8 +37,8 @@ public class PieceUnderConstruction extends Piece {
 		
 		Vector3 sqPos = new Vector3();
 		Vector3 temp = new Vector3();
-		Vector3 mWidth = new Vector3();
-		addPiece.getDimension(mWidth);	//m'width *tips fedora*
+		Vector3 mWidth = addPiece.getDimension();	
+		//m'width *tips fedora*
 		//see if block is too far from center of piece
 		/*if (boxes.size() > 0) {
 			sqPos.set(myPos).add(myPos).add(xwidth, ywidth, zwidth).scl(0.5f);
@@ -44,13 +49,22 @@ public class PieceUnderConstruction extends Piece {
 			}
 		}*/
 		//see if any block already occupies this space
-		if (this.conflicts(ORIGIN, addPiece)) {
+		/*if (this.conflicts(ORIGIN, addPiece)) {
 			System.out.println("Square conflicts");
 			return;
+		}*/
+		if (addPiece.isBox()) {
+			NamedMaterial addOwner = (NamedMaterial)(addPiece.getMat());
+			ModelInstance boxModel = addOwner.createModelInstance();
+			boxModel.transform.setToTranslationAndScaling(addPiece.getPos(), addPiece.getDimension());
+			BasicRenderable bas = new BasicRenderable(boxModel);
+			boxRenderables.put(addPiece, bas);
 		}
-		
-		ModelInstance instance = addPiece.createModelInstance();
-		squareModels.add(new BasicRenderable(instance));
+		else {
+			Piece addPieceOwner = (Piece)(addPiece.getMat());
+			PieceInstance pi = new PieceInstance(addPieceOwner, addPiece.getPos());
+			subInstances.put(addPiece, pi);
+		}
 		boxes.add(addPiece);
 		updateWidths(addPiece);
 	}
@@ -60,7 +74,7 @@ public class PieceUnderConstruction extends Piece {
 		Vector3 pos = box.getPos();
 		if (boxes.size() == 1) {
 			corner0.set(pos);
-			box.getDimension(dimensions);
+			dimensions.set(box.getDimension());
 		}
 		else {
 			corner0.set(Math.min(corner0.x, pos.x), 
@@ -70,11 +84,15 @@ public class PieceUnderConstruction extends Piece {
 		}
 	}
 	
-	public int render(Vector3 p, Renderable[] renderables, int count) {
-		if (count + squareModels.size() > renderables.length)
+	public int render(Vector3 p, Renderable[] renderables, int count, float renderLength, int renderSize) {
+		
+		if (count + boxRenderables.size() > renderables.length)
 			return count;
-		for (int c = 0; c < squareModels.size(); c++) {
-			renderables[count++] = squareModels.get(c);
+		for (BasicRenderable bi: boxRenderables.values()) {
+			renderables[count++] = bi;
+		}
+		for (PieceInstance pi: subInstances.values()) {
+			count = pi.render(p, renderables, count, renderLength, renderSize);
 		}
 		return count;
 	}
@@ -91,30 +109,35 @@ public class PieceUnderConstruction extends Piece {
 		Vector3 sqPos = new Vector3();
 		int removeIndex = -1;
 		float width;
-		Vector3 oppositeCorner = new Vector3();
-		float minDist = Float.MAX_VALUE;
-		float dist;
-		for (int c = 0; c < squareModels.size(); c++) {
+		float minDst = -1;
+		float dst;
+		for (int c = 0; c < boxes.size(); c++) {
 			sqPos.set(boxes.get(c).getPos());
-			width = Position.getWidth(boxes.get(c).getSize());
-			oppositeCorner.set(sqPos).add(width, width, width);
-			if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(sqPos, oppositeCorner), intersection)) {
-				dist = intersection.dst(cameraRay.origin);
-				if (dist < minDist) {
-					minDist = dist;
+			dst = boxes.get(c).hits(sqPos, cameraRay, sideSize);
+			if (dst >= 0) {
+				if (minDst < 0 || dst < minDst) {
+					minDst = dst;
 					removeIndex = c;
 				}
 			}
 		}
-		if (removeIndex < 0 || removeIndex >= squareModels.size()) {
+		if (removeIndex < 0 || removeIndex >= boxes.size()) {
 			return;
 		}
-		else if (minDist >= Position.getWidth(sideSize) * Constants.MAX_PLACE_REACH) {
+		else if (minDst >= Position.getWidth(sideSize) * Constants.MAX_PLACE_REACH) {
 			return;
 		}
-		squareModels.remove(removeIndex);
-		boxes.remove(removeIndex);
+		BasicBox removeMe = boxes.remove(removeIndex);
+		if (removeMe.isBox()) {
+			//remove from boxRenderables
+			boxRenderables.remove(removeMe);
+		}
+		else {
+			//remove from subInstances
+			subInstances.remove(removeMe);
+		}
 		
+		corner0.set(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
 		if (boxes.size() > 0) {
 			Vector3 pos;
 			for (int c = 0; c < boxes.size(); c++) {
@@ -128,21 +151,85 @@ public class PieceUnderConstruction extends Piece {
 		return this.corner0;
 	}
 	
-	@Override
-	public boolean conflicts(Vector3 pos, BasicBox box) {
-		return super.conflicts(ORIGIN, box);
-	}
-	@Override
-	public boolean conflicts(Vector3 pos, Vector3 test0, Vector3 mWidth) {
-		return super.conflicts(ORIGIN, test0, mWidth);
-	}
-	@Override
-	public float hits(Vector3 pos, Ray cameraRay, int sideSize) {
-		return super.hits(ORIGIN, cameraRay, sideSize);
+	public boolean conflicts(BasicBox target) {
+		//see if it hits my overall bounding box
+		//set my bounding box
+		temp0.set(corner0);
+		temp1.set(corner0).add(dimensions);
+		//set their bounding box
+		temp2.set(target.getPos());
+		temp3.set(target.getPos()).add(target.getDimension());
+		//check if it hits bounding box
+		if (	   temp0.x < temp3.x && temp1.x > temp2.x 
+				&& temp0.y < temp3.y && temp1.y > temp2.y 
+				&& temp0.z < temp3.z && temp1.z > temp2.z  ) {
+			//do nothing - we have a good chance of conflicting! (but not yet!)
+		}
+		else {
+			return false;
+		}
+		//iterate through my own boxes
+		for (int i = 0; i < boxes.size(); i++) {
+			temp0.set(boxes.get(i).getPos());
+			if (boxes.get(i).conflicts(temp0, target)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
-	@Override
-	public float findCollision(Vector3 p, Ray cameraRay, Vector3 place, Vector3 dim, int sideSize) {
-		return super.findCollision(ORIGIN, cameraRay, place, dim, sideSize);
+	public float hits(Ray cameraRay, int sideSize) {
+		temp0.set(corner0);
+		temp1.set(corner0).add(dimensions);
+		if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(temp0, temp1), temp2)) {
+			//do nothing - we have a good chance it might hit us!
+		}
+		else {
+			//doesn't hit our outside box - fail!
+			return -1.0f;
+		}
+		float dst;
+		float minDst = -1.0f;
+		for (int i = 0; i < boxes.size(); i++) {
+			temp0.set(boxes.get(i).getPos());
+			dst = boxes.get(i).hits(temp0, cameraRay, sideSize);
+			if (dst >= 0) {
+				if (minDst < 0 || dst < minDst) {
+					minDst = dst;
+				}
+			}
+		}
+		return minDst;
+	}
+	
+	public float findCollision(Ray cameraRay, Vector3 place, Vector3 dim, int sideSize) {
+		temp0.set(corner0);
+		temp1.set(corner0).add(dimensions);
+		if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(temp0, temp1), temp2)) {
+			//do nothing - we have a good chance it might hit us!
+		}
+		else {
+			//doesn't hit our outside box - fail!
+			return -1.0f;
+		}
+		
+		temp2.scl(0.0f);
+		
+		float dst;
+		float minDst = -1.0f;
+		for (int i = 0; i < boxes.size(); i++) {
+			temp0.set(boxes.get(i).getPos());
+			dst = boxes.get(i).findCollision(temp0, cameraRay, temp1, dim, sideSize);
+			if (dst >= 0) {
+				if (minDst < 0 || dst < minDst) {
+					minDst = dst;
+					temp2.set(temp1);
+				}
+			}
+		}
+		if (minDst >= 0) {
+			place.set(temp2);
+		}
+		return minDst;
 	}
 }

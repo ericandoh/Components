@@ -65,21 +65,21 @@ public class Chunk {
 		}
 		return false;
 	}
-	public PieceInstance hit(Ray cameraRay, int sideSize, Vector3 dst) {
+	public PieceInstance hit(Ray cameraRay, int sideSize, Vector3 vdst) {
 		PieceInstance minP = null;
 		float minDst = -1.0f;
-		float pdst;
+		float dst;
 		
 		for (PieceInstance pi: pieces) {
-			pdst = pi.hits(cameraRay, sideSize);
-			if (pdst >= 0) {
-				if (minDst < 0 || pdst < minDst) {
-					minDst = pdst;
+			dst = pi.hits(cameraRay, sideSize);
+			if (dst >= 0) {
+				if (minDst < 0 || dst < minDst) {
+					minDst = dst;
 					minP = pi;
 				}
 			}
 		}
-		dst.set(minDst, minDst, minDst);
+		vdst.set(minDst, minDst, minDst);
 		return minP;
 	}
 	public float findCollision(Ray cameraRay, Vector3 place, Vector3 boxDimensions, int sideSize) {
@@ -90,7 +90,7 @@ public class Chunk {
 		for (PieceInstance pi: pieces) {
 			dst = pi.findCollision(cameraRay, temp, boxDimensions, sideSize);
 			if (dst >= 0) {
-				if (dst < minDst) {
+				if (minDst < 0 || dst < minDst) {
 					minDst = dst;
 					place.set(temp);
 				}
