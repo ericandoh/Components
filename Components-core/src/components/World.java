@@ -161,9 +161,13 @@ public class World {
 			}
 		}
 		
-		place.x = Position.quantizeValue(place.x, sideSize);
-		place.y = Position.quantizeValue(place.y, sideSize);
-		place.z = Position.quantizeValue(place.z, sideSize);
+		place.x = Position.quantizeValue(place.x, 0);
+		place.y = Position.quantizeValue(place.y, 0);
+		place.z = Position.quantizeValue(place.z, 0);
+		
+		//place.x = Position.quantizeValue(place.x, sideSize);
+		//place.y = Position.quantizeValue(place.y, sideSize);
+		//place.z = Position.quantizeValue(place.z, sideSize);
 		
 		if (place.y < 0)
 			place.y = 0;

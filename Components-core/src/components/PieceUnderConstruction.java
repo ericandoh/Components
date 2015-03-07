@@ -1,6 +1,5 @@
 package components;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
@@ -35,9 +34,9 @@ public class PieceUnderConstruction extends Piece {
 		System.out.println("Adding piece at ");
 		System.out.println(addPiece.getPos());
 		
-		Vector3 sqPos = new Vector3();
-		Vector3 temp = new Vector3();
-		Vector3 mWidth = addPiece.getDimension();	
+		//Vector3 sqPos = new Vector3();
+		//Vector3 temp = new Vector3();
+		//Vector3 mWidth = addPiece.getDimension();	
 		//m'width *tips fedora*
 		//see if block is too far from center of piece
 		/*if (boxes.size() > 0) {
@@ -105,15 +104,12 @@ public class PieceUnderConstruction extends Piece {
 	}
 	
 	public void removeBlock(Ray cameraRay, int sideSize) {
-		Vector3 intersection = new Vector3();
-		Vector3 sqPos = new Vector3();
 		int removeIndex = -1;
-		float width;
 		float minDst = -1;
 		float dst;
 		for (int c = 0; c < boxes.size(); c++) {
-			sqPos.set(boxes.get(c).getPos());
-			dst = boxes.get(c).hits(sqPos, cameraRay, sideSize);
+			//sqPos.set(boxes.get(c).getPos());
+			dst = boxes.get(c).hits(ORIGIN, cameraRay, sideSize);
 			if (dst >= 0) {
 				if (minDst < 0 || dst < minDst) {
 					minDst = dst;
@@ -170,8 +166,8 @@ public class PieceUnderConstruction extends Piece {
 		}
 		//iterate through my own boxes
 		for (int i = 0; i < boxes.size(); i++) {
-			temp0.set(boxes.get(i).getPos());
-			if (boxes.get(i).conflicts(temp0, target)) {
+			//temp0.set(boxes.get(i).getPos());
+			if (boxes.get(i).conflicts(ORIGIN, target)) {
 				return true;
 			}
 		}
@@ -191,8 +187,8 @@ public class PieceUnderConstruction extends Piece {
 		float dst;
 		float minDst = -1.0f;
 		for (int i = 0; i < boxes.size(); i++) {
-			temp0.set(boxes.get(i).getPos());
-			dst = boxes.get(i).hits(temp0, cameraRay, sideSize);
+			//temp0.set(boxes.get(i).getPos());
+			dst = boxes.get(i).hits(ORIGIN, cameraRay, sideSize);
 			if (dst >= 0) {
 				if (minDst < 0 || dst < minDst) {
 					minDst = dst;
@@ -218,8 +214,8 @@ public class PieceUnderConstruction extends Piece {
 		float dst;
 		float minDst = -1.0f;
 		for (int i = 0; i < boxes.size(); i++) {
-			temp0.set(boxes.get(i).getPos());
-			dst = boxes.get(i).findCollision(temp0, cameraRay, temp1, dim, sideSize);
+			//temp0.set(boxes.get(i).getPos());
+			dst = boxes.get(i).findCollision(ORIGIN, cameraRay, temp1, dim, sideSize);
 			if (dst >= 0) {
 				if (minDst < 0 || dst < minDst) {
 					minDst = dst;

@@ -63,8 +63,8 @@ public class BasicBox {
 	public boolean conflicts(Vector3 pos, BasicBox box) {
 		if (isBox) {
 			//set bounding for me
-			temp0.set(pos);
-			temp1.set(pos).add(dim);
+			temp0.set(pos).add(this.pos);
+			temp1.set(temp0).add(dim);
 			//set bounding for basicbox
 			temp2.set(box.getPos());
 			temp3.set(box.getPos()).add(box.getDimension());
@@ -79,14 +79,15 @@ public class BasicBox {
 			}
 		}
 		else {
-			return ((Piece)this.getMat()).conflicts(pos, box);
+			temp0.set(pos).add(this.pos);
+			return ((Piece)this.getMat()).conflicts(temp0, box);
 		}
 	}
 	public float hits(Vector3 pos, Ray cameraRay, int sideSize) {
 		if (isBox) {
 			//set bounding for me
-			temp0.set(pos);
-			temp1.set(pos).add(dim);
+			temp0.set(pos).add(this.pos);
+			temp1.set(temp0).add(dim);
 			if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(temp0, temp1), temp2)) {
 				//doesn't even hit the bounds LOL
 				return temp2.dst(cameraRay.origin);
@@ -96,13 +97,14 @@ public class BasicBox {
 			}
 		}
 		else {
-			return ((Piece)this.getMat()).hits(pos, cameraRay, sideSize);
+			temp0.set(pos).add(this.pos);
+			return ((Piece)this.getMat()).hits(temp0, cameraRay, sideSize);
 		}
 	}
 	public float findCollision(Vector3 pos, Ray cameraRay, Vector3 place, Vector3 dim, int sideSize) {
 		if (isBox) {
-			temp0.set(pos);
-			temp1.set(pos).add(dim);
+			temp0.set(pos).add(this.pos);
+			temp1.set(temp0).add(this.dim);
 			if (Intersector.intersectRayBounds(cameraRay, new BoundingBox(temp0, temp1), temp2)) {
 				//doesn't even hit the bounds LOL
 				if (Math.abs(temp2.x - temp0.x) < 0.01) {
@@ -134,7 +136,8 @@ public class BasicBox {
 			}
 		}
 		else {
-			return ((Piece)this.getMat()).findCollision(pos, cameraRay, place, dim, sideSize);
+			temp0.set(pos).add(this.pos);
+			return ((Piece)this.getMat()).findCollision(temp0, cameraRay, place, dim, sideSize);
 		}
 	}
 }

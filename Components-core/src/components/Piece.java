@@ -180,8 +180,8 @@ public class Piece implements Placeable {
 		
 		//iterate through my own boxes
 		for (int i = 0; i < boxes.size(); i++) {
-			temp0.set(boxes.get(i).getPos()).add(pos);
-			if (boxes.get(i).conflicts(temp0, target)) {
+			//temp0.set(boxes.get(i).getPos()).add(pos);
+			if (boxes.get(i).conflicts(pos, target)) {
 				return true;
 			}
 		}
@@ -205,8 +205,8 @@ public class Piece implements Placeable {
 		float dst;
 		float minDst = -1.0f;
 		for (int i = 0; i < boxes.size(); i++) {
-			temp0.set(boxes.get(i).getPos()).add(pos);
-			dst = boxes.get(i).hits(temp0, cameraRay, sideSize);
+			//temp0.set(boxes.get(i).getPos()).add(pos);
+			dst = boxes.get(i).hits(pos, cameraRay, sideSize);
 			if (dst >= 0) {
 				if (minDst < 0 || dst < minDst) {
 					minDst = dst;
@@ -237,8 +237,8 @@ public class Piece implements Placeable {
 		float dst;
 		float minDst = -1.0f;
 		for (int i = 0; i < boxes.size(); i++) {
-			temp0.set(boxes.get(i).getPos()).add(pos);
-			dst = boxes.get(i).findCollision(temp0, cameraRay, temp1, dim, sideSize);
+			//temp0.set(boxes.get(i).getPos()).add(pos);
+			dst = boxes.get(i).findCollision(pos, cameraRay, temp1, dim, sideSize);
 			if (dst >= 0) {
 				System.out.println("Found onet");
 				if (minDst < 0 || dst < minDst) {

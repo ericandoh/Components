@@ -318,7 +318,6 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 				bottomBar.getAtSelected().getDimension(boxDimensions, edittingSize);
 				Vector3 addAt = world.findCollision(cameraRay, place, boxDimensions, edittingSize);
 				if (addAt != null) {
-					System.out.println("Add support for adding pieces here");
 					//if (bottomBar.getAtSelected() instanceof NamedMaterial)
 					world.addBlockToBuild(addAt, edittingSize, bottomBar.getAtSelected());
 				}
