@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import render.TextureOrganizer;
 import render.TextureType;
+import screens.GameScreen.WindowMode;
 
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -54,10 +55,7 @@ public class GameItemSelection extends ManagingGroup {
 		leftTitle.addListener(new ClickListener() {
 			@Override
 		    public void clicked(InputEvent event, float x, float y) {
-				if (viewing != ViewingMode.MATERIAL) {
-					viewing = ViewingMode.MATERIAL;
-					fillTable();
-				}
+				changeMode(ViewingMode.MATERIAL);
 			}
 		});
 		addActorManaged(leftTitle, 0.0f, 0.9f, 0.5f, 0.1f);
@@ -66,10 +64,7 @@ public class GameItemSelection extends ManagingGroup {
 		rightTitle.addListener(new ClickListener() {
 			@Override
 		    public void clicked(InputEvent event, float x, float y) {
-				if (viewing != ViewingMode.PIECE) {
-					viewing = ViewingMode.PIECE;
-					fillTable();
-				}
+				changeMode(ViewingMode.PIECE);
 			}
 		});
 		addActorManaged(rightTitle, 0.5f, 0.9f, 0.5f, 0.1f);
@@ -100,7 +95,7 @@ public class GameItemSelection extends ManagingGroup {
 		float margin = 0.05f;
 		addActorManaged(scroll, margin, margin, 1.0f - margin * 2, 0.8f - margin * 2);
 		
-		this.viewing = ViewingMode.NONE;
+		this.viewing = ViewingMode.MATERIAL;
 		//if (getWidth() != 0) {
 			//fillTable();
 		//}
@@ -159,11 +154,25 @@ public class GameItemSelection extends ManagingGroup {
 		}
 	}
 	
+	public void changeMode(ViewingMode newMode) {
+		//if (viewing == newMode) {
+			//return;
+		//}
+		viewing = newMode;
+		if (newMode == ViewingMode.MATERIAL) {
+			fillTable();
+		}
+		if (newMode == ViewingMode.PIECE) {
+			fillTable();
+		}
+	}
+	
 	//later will take in arguments
 	public void fillTable() {
 		if (scroll.getWidth() == 0) {
 			return;
 		}
+		boolean showedNew = false;
 		ArrayList<Placeable> currentView = new ArrayList<Placeable>();
 		if (viewing == ViewingMode.MATERIAL) {
 			if (loadedMats == null)
@@ -172,12 +181,13 @@ public class GameItemSelection extends ManagingGroup {
 				currentView.add(m);
 			}
 		}
-		else {
+		else if (viewing == ViewingMode.PIECE){
 			if (loadedPieces == null)
 				loadedPieces = repo.getAllPieces();
 			for (Piece m: loadedPieces) {
 				currentView.add(m);
 			}
+			showedNew = true;
 		}
 		
 		tiles.clearChildren();
@@ -187,7 +197,6 @@ public class GameItemSelection extends ManagingGroup {
 			numAcross = 1;
 		}
 		int count = 0;
-		boolean showedNew = false;
 		Actor tile;
 		while (count < currentView.size()) {
 			for (int y = 0; y < numAcross; y++) {
@@ -220,7 +229,7 @@ public class GameItemSelection extends ManagingGroup {
 	}
 	public void makeNew() {
 		//called when we press the "NEW MAT" button
-		System.out.println("NEW!");
+		owner.switchMode(WindowMode.ITEMCREATE);
 	}
 	public void setBarMaterial(Placeable mat) {
 		owner.setBlock(mat);

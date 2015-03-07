@@ -44,6 +44,13 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 	private ManagingGroup boxManager;
 	private GameItemBar bottomBar;
 	private GameItemSelection selectScreen;
+	private GameItemCreation createScreen;
+	
+	private WindowMode windowMode;
+	
+	protected enum WindowMode {
+		GAME, ITEMSELECTION, ITEMCREATE, MENU;
+	}
 	
 	private boolean editting;
 	
@@ -91,6 +98,9 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 		selectScreen = new GameItemSelection(this, pmRepo);
 		boxManager.addActorManaged(selectScreen, 0.1f, 0.15f, 0.8f, 0.7f);
 		
+		createScreen = new GameItemCreation(this, pmRepo);
+		boxManager.addActorManaged(createScreen, 0.1f, 0.15f, 0.8f, 0.7f);
+		
 		//setBounds()
 		stage.addActor(boxManager);
 		
@@ -100,6 +110,7 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 		Gdx.input.setInputProcessor(plexer);
 		
 		activeScreen(true);
+		windowMode = WindowMode.GAME;
 	}
 	
 	@Override
@@ -160,17 +171,23 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 	@Override
 	public void resume() {
 		paused = false;
-		activeScreen(true);
+		switchMode(windowMode);
 	}
 
 	@Override
 	public boolean keyDown(int keycode) {
-		for (int i = 0; i < DIRECTION_ORDER.length; i++) {
-			if (DIRECTION_KEYS[i] == keycode) {
-				directionTrackers[i] = true;
-				return true;
+		
+		boolean shiftPressed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
+		
+		if (!shiftPressed) {
+			for (int i = 0; i < DIRECTION_ORDER.length; i++) {
+				if (DIRECTION_KEYS[i] == keycode) {
+					directionTrackers[i] = true;
+					return true;
+				}
 			}
 		}
+		
 		if (keycode == Input.Keys.ENTER) {
 			if (editting) {
 				world.exportBuildToPiece(pmRepo);
@@ -179,9 +196,8 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 			}
 		}
 		else if (keycode == Input.Keys.ESCAPE) {
-			if (selectScreen.isVisible()) {
-				selectScreen.setVisible(false);
-				activeScreen(true);
+			if (windowMode != WindowMode.GAME) {
+				switchMode(WindowMode.GAME);
 			}
 			else if (editting) {
 				editting = false;
@@ -199,8 +215,13 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 		}
 		else if (keycode == Input.Keys.I) {
 			//open materials + pieces menu
-			selectScreen.setVisible(true);
-			activeScreen(false);
+			if (windowMode == WindowMode.ITEMSELECTION 
+					|| windowMode == WindowMode.ITEMCREATE) {
+				switchMode(WindowMode.GAME);
+			}
+			else {
+				switchMode(WindowMode.ITEMSELECTION);
+			}
 		}
 		else if (keycode == Input.Keys.UP) {
 			edittingSize++;
@@ -334,6 +355,38 @@ public class GameScreen extends BasicScreen implements InputProcessor {
 		//if (editting)
 		bottomBar.incrementSelector(amount);
 		return false;
+	}
+	
+	public void switchMode(WindowMode mode) {
+		if (windowMode == WindowMode.ITEMSELECTION) {
+			selectScreen.setVisible(false);
+		}
+		else if (windowMode == WindowMode.ITEMCREATE) {
+			createScreen.setVisible(false);
+		}
+		else if (windowMode == WindowMode.MENU) {
+			//.setVisible(false);
+		}
+		else if (windowMode == WindowMode.GAME) {
+			activeScreen(false);
+		}
+		
+		
+		if (mode == WindowMode.GAME) {
+			activeScreen(true);
+		}
+		else if (mode == WindowMode.ITEMSELECTION) {
+			selectScreen.setVisible(true);
+			activeScreen(false);
+		}
+		else if (mode == WindowMode.ITEMCREATE) {
+			createScreen.setVisible(true);
+			activeScreen(false);
+		}
+		else if (mode == WindowMode.MENU) {
+			activeScreen(false);
+		}
+		windowMode = mode;
 	}
 	
 	public void activeScreen(boolean yes) {

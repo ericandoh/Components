@@ -22,6 +22,8 @@ public class NamedMaterial implements Placeable {
 	private Model materialBlock;
 	private int id;
 	
+	private TextureRegion icon;
+	
 	public NamedMaterial(int id, String name, Color ambient, Color diffuse, Color specular, float shiny) {
 		this.id = id;
 		this.name = name;
@@ -33,14 +35,14 @@ public class NamedMaterial implements Placeable {
 										ColorAttribute.createDiffuse(this.diffuse),
 										ColorAttribute.createSpecular(this.specular), 
 										FloatAttribute.createShininess(this.shiny));
-		this.materialBlock = MeshAndModelBuilder.createBox(this.material);
+		this.materialBlock = MeshAndModelBuilder.materialBox(this.material);
 	}
 	public NamedMaterial(int id, String name, Color diffuse) {
 		this.id = id;
 		this.name = name;
 		this.diffuse = diffuse;
 		this.material = new Material(ColorAttribute.createDiffuse(this.diffuse));
-		this.materialBlock = MeshAndModelBuilder.createBox(this.material);
+		this.materialBlock = MeshAndModelBuilder.materialBox(this.material);
 	}
 	public NamedMaterial() {
 		this(0, "air", Color.WHITE);
@@ -59,7 +61,9 @@ public class NamedMaterial implements Placeable {
 		return new ModelInstance(materialBlock);
 	}
 	public TextureRegion getIcon() {
-		return MeshAndModelBuilder.makeIcon(materialBlock, 1, 1, 1);
+		if (icon == null)
+			icon = MeshAndModelBuilder.makeIcon(materialBlock, 1, 1, 1);
+		return icon;
 	}
 	public Vector3 getDimension(Vector3 src, int sideSize) {
 		return src.set(BLOCK_DIMENSION).scl(Position.getWidth(sideSize));

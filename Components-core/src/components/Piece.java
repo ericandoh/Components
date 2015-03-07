@@ -42,6 +42,8 @@ public class Piece implements Placeable {
 	
 	protected Vector3 temp0, temp1, temp2, temp3;
 	
+	private TextureRegion icon;
+	
 	public Piece(Model p, String name, int size, int xwidth, int ywidth, int zwidth, PieceAndMaterialRepo repo) {
 		//your basic piece
 		makeTemporary();
@@ -273,10 +275,13 @@ public class Piece implements Placeable {
 		}
 	}
 	public TextureRegion getIcon() {
-		ArrayList<Model> models = new ArrayList<Model>();
-		ArrayList<Vector3> pos = new ArrayList<Vector3>();
-		populateModels(PieceUnderConstruction.ORIGIN, models, pos);
-		return MeshAndModelBuilder.makeIcon(models, pos, dimensions.x, dimensions.y, dimensions.z);
+		if (icon == null) {
+			ArrayList<Model> models = new ArrayList<Model>();
+			ArrayList<Vector3> pos = new ArrayList<Vector3>();
+			populateModels(PieceUnderConstruction.ORIGIN, models, pos);
+			icon = MeshAndModelBuilder.makeIcon(models, pos, dimensions.x, dimensions.y, dimensions.z);
+		}
+		return icon;
 	}
 	public Vector3 getDimension(Vector3 src, int sideSize) {
 		return src.set(dimensions);

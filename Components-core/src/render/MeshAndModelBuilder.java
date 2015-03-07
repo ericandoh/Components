@@ -79,7 +79,7 @@ public class MeshAndModelBuilder {
 		}
 		return groundPlane;
 	}
-	public static Model materialBlock(Material lol) {
+	public static Model materialBox(Material lol) {
 		Model materialModel = createBox(lol);
 		allModels.add(materialModel);
 		return materialModel;
@@ -213,15 +213,23 @@ public class MeshAndModelBuilder {
 	private static TextureRegion m_fboRegion = null;
 
 	public static TextureRegion makeIcon(Model model, float xwidth, float ywidth, float zwidth) {
+		return makeIcon(model, xwidth, ywidth, zwidth, true);
+	}
+	
+	public static TextureRegion makeIcon(Model model, float xwidth, float ywidth, float zwidth, boolean preserve) {
 		ArrayList<Model> models = new ArrayList<Model>();
 		models.add(model);
 		ArrayList<Vector3> pos = new ArrayList<Vector3>();
 		pos.add(PieceUnderConstruction.ORIGIN);
-		return makeIcon(models, pos, xwidth, ywidth, zwidth);
+		return makeIcon(models, pos, xwidth, ywidth, zwidth, preserve);
+	}
+	
+	public static TextureRegion makeIcon(ArrayList<Model> model, ArrayList<Vector3> pos, float xwidth, float ywidth, float zwidth) {
+		return makeIcon(model, pos, xwidth, ywidth, zwidth, true);
 	}
 	
 	//makes a 2d icon given a Model (to show for display purposes)
-	public static TextureRegion makeIcon(ArrayList<Model> model, ArrayList<Vector3> pos, float xwidth, float ywidth, float zwidth) {
+	public static TextureRegion makeIcon(ArrayList<Model> model, ArrayList<Vector3> pos, float xwidth, float ywidth, float zwidth, boolean preserve) {
 		//taken from http://stackoverflow.com/questions/7551669/libgdx-spritebatch-render-to-texture               
 		int width = Constants.ICON_WIDTH;
 		int height = Constants.ICON_WIDTH;
@@ -277,7 +285,9 @@ public class MeshAndModelBuilder {
 			m_fbo.end();
 			m_fboRegion = new TextureRegion(m_fbo.getColorBufferTexture());
 			m_fboRegion.flip(false, true);
-			m_fbo = null;
+			if (preserve) {
+				m_fbo = null;
+			}
 			return m_fboRegion;
 		}   
 		return null;
